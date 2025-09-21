@@ -20,6 +20,7 @@
 * {
   box-sizing: border-box;
 }
+
 body {
   margin: 0;
   background: var(--bg);
@@ -489,7 +490,7 @@ main {
 /* Dialogs */
 dialog {
   border: 1px solid var(--border);
-  background: #0f1219;
+  background: #0f1219 !important;
   color: var(--text);
   border-radius: 8px;
   padding: 0;
@@ -537,17 +538,12 @@ dialog .body {
   width: 100%;
   height: 100dvh;
   border-radius: 0;
-  background: linear-gradient(
-      180deg,
-      rgba(34, 197, 94, 0.12),
-      transparent 240px
-    ),
-    var(--panel-2);
+  background-color: #0e1015;
 }
 #nowDialog .np-wrap {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  gap: 16px;
+  gap: 20px;
   height: 100%;
 }
 #nowDialog .np-cover {
@@ -567,10 +563,11 @@ dialog .body {
 }
 #nowDialog .np-title {
   font-weight: 900;
-  font-size: 1.1rem;
+  font-size: 2rem;
   text-align: center;
 }
 #nowDialog .np-artist {
+  font-size: 1.5rem;
   color: var(--muted);
 }
 #nowDialog .np-controls {
@@ -671,8 +668,7 @@ dialog .body {
 
   /* garder seulement play & next */
   #btnShuffle,
-  #btnRepeat,
-  #btnExpand {
+  #btnRepeat {
     display: none;
   }
 }
@@ -759,9 +755,6 @@ dialog .body {
   display: grid;
   place-items: center;
 }
-.kebab svg {
-  fill: white;
-}
 
 @media (max-width: 900px) {
   #viewSongs .songsHeader {
@@ -826,4 +819,17 @@ dialog .body {
 #albumView .table,
 #playlistView .table {
   margin-top: 14px;
+}
+
+@media (max-width: 640px) {
+  table:has(#playlistTbody) th:nth-child(4),
+  table:has(#playlistTbody) td:nth-child(4) {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
+  table:has(#albumTbody) th:nth-child(3),
+  table:has(#albumTbody) td:nth-child(3) {
+    display: none;
+  }
 }

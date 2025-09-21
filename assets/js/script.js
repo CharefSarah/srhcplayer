@@ -142,7 +142,13 @@ const state = {
   shuffle: false,
   repeat: "off",
   currentPlaylistId: null,
+  // Sélection multiple
+  selectMode: false,
+  selection: new Set(),
 };
+
+let audio = new Audio();
+audio.preload = "metadata";
 
 /* ======= Queue helpers ======= */
 function _currentListForScope() {
@@ -182,9 +188,6 @@ function rebuildQueue() {
 }
 window.rebuildQueue = rebuildQueue;
 
-let audio = new Audio();
-audio.preload = "metadata";
-
 /* ======= Media Session ======= */
 function setMediaSession(song) {
   if (!("mediaSession" in navigator)) return;
@@ -192,7 +195,7 @@ function setMediaSession(song) {
     ? [
         { src: song.coverDataUrl, sizes: "96x96", type: "image/png" },
         { src: song.coverDataUrl, sizes: "256x256", type: "image/png" },
-        { src: song.coverDataUrl, sizes: "512x512", type: "image/png" },
+        { src: song.coverDataUrl, sizes: "312x312", type: "image/png" },
       ]
     : [];
   navigator.mediaSession.metadata = new MediaMetadata({
@@ -216,11 +219,8 @@ function setMediaSession(song) {
       );
     });
     navigator.mediaSession.setActionHandler("seekto", (d) => {
-      if (d.fastSeek && "fastSeek" in audio) {
-        audio.fastSeek(d.seekTime);
-      } else {
-        audio.currentTime = d.seekTime;
-      }
+      if (d.fastSeek && "fastSeek" in audio) audio.fastSeek(d.seekTime);
+      else audio.currentTime = d.seekTime;
     });
     navigator.mediaSession.setActionHandler("stop", () => {
       pause();
@@ -254,17 +254,20 @@ function updatePositionState() {
   renderSideAlbums();
   setScope({ type: "all" });
   bindUI();
+  attachAlbumAutocomplete(); // Autocomplete album initial
 })();
 
 /* ======= Bindings ======= */
 function bindUI() {
-  $("#btnFavorites").onclick = () => setScope({ type: "fav" });
-  $("#btnAlbums").onclick = showAlbums;
-  $("#btnPlaylists").onclick = showPlaylists;
+  $("#btnFavorites") &&
+    ($("#btnFavorites").onclick = () => setScope({ type: "fav" }));
+  $("#btnAlbums") && ($("#btnAlbums").onclick = showAlbums);
+  $("#btnPlaylists") && ($("#btnPlaylists").onclick = showPlaylists);
 
-  $("#btnNewPlaylist").onclick = openNewPlaylistDialog;
+  $("#btnNewPlaylist") &&
+    ($("#btnNewPlaylist").onclick = openNewPlaylistDialog);
 
-  $("#search").addEventListener("input", () => {
+  $("#search")?.addEventListener("input", () => {
     if (state.scope.type === "albumDetail") renderAlbumDetail(state.scope.name);
     else if (state.scope.type === "playlistDetail")
       renderPlaylistDetail(state.currentPlaylistId);
@@ -272,64 +275,70 @@ function bindUI() {
   });
 
   // Song dialog widgets
-  $("#btnAddSong").onclick = () => songDialog.showModal();
-  $("#songCover").addEventListener("change", async (e) => {
+  $("#btnAddSong") && ($("#btnAddSong").onclick = () => songDialog.showModal());
+  $("#songCover")?.addEventListener("change", async (e) => {
     const f = e.target.files[0];
     if (f) $("#songCoverPreview").src = await readAsDataURL(f);
   });
-  $("#saveSong").addEventListener("click", saveSongFromForm);
+  $("#saveSong")?.addEventListener("click", saveSongFromForm);
 
   // Player controls
-  $("#volume").oninput = (e) => {
-    audio.volume = +e.target.value;
-    e.target.style.setProperty(
-      "--_val",
-      Math.floor(+e.target.value * 100) + "%"
-    );
-  };
-  $("#seek").oninput = (e) => {
-    const pos = +e.target.value / 1000;
-    if (audio.duration) audio.currentTime = pos * audio.duration;
-    e.target.style.setProperty("--_val", e.target.value / 10 + "%");
-  };
-  $("#btnShuffle").onclick = () => {
-    state.shuffle = !state.shuffle;
-    $("#btnShuffle").classList.toggle("primary", state.shuffle);
-    rebuildQueue();
-  };
-  $("#btnRepeat").onclick = () => {
-    state.repeat =
-      state.repeat === "off" ? "all" : state.repeat === "all" ? "one" : "off";
-    $("#btnRepeat").title = "Répéter: " + state.repeat;
-  };
-  $("#btnPrev").onclick = prev;
-  $("#btnNext").onclick = next;
-  $("#btnPlay").onclick = smartPlay;
-  $("#btnExpand").onclick = () => nowDialog.showModal();
-  $("#btnLike").onclick = toggleLikeCurrent;
+  $("#volume") &&
+    ($("#volume").oninput = (e) => {
+      audio.volume = +e.target.value;
+      e.target.style.setProperty(
+        "--_val",
+        Math.floor(+e.target.value * 100) + "%"
+      );
+    });
+  $("#seek") &&
+    ($("#seek").oninput = (e) => {
+      const pos = +e.target.value / 1000;
+      if (audio.duration) audio.currentTime = pos * audio.duration;
+      e.target.style.setProperty("--_val", e.target.value / 10 + "%");
+    });
+  $("#btnShuffle") &&
+    ($("#btnShuffle").onclick = () => {
+      state.shuffle = !state.shuffle;
+      $("#btnShuffle").classList.toggle("primary", state.shuffle);
+      rebuildQueue();
+    });
+  $("#btnRepeat") &&
+    ($("#btnRepeat").onclick = () => {
+      state.repeat =
+        state.repeat === "off" ? "all" : state.repeat === "all" ? "one" : "off";
+      $("#btnRepeat").title = "Répéter: " + state.repeat;
+    });
+  $("#btnPrev") && ($("#btnPrev").onclick = prev);
+  $("#btnNext") && ($("#btnNext").onclick = next);
+  $("#btnPlay") && ($("#btnPlay").onclick = smartPlay);
+  $("#btnExpand") && ($("#btnExpand").onclick = () => nowDialog.showModal());
+  $("#btnLike") && ($("#btnLike").onclick = toggleLikeCurrent);
 
-  // Big mobile header play
-  $("#songsPlayBig").onclick = () => {
-    rebuildQueue();
-    if (state.queue.length) playIndex(0);
-  };
+  // Big header play
+  $("#songsPlayBig") &&
+    ($("#songsPlayBig").onclick = () => {
+      rebuildQueue();
+      if (state.queue.length) playIndex(0);
+    });
 
   // Fullscreen player mirroring
-  $("#npShuffle").onclick = () => $("#btnShuffle").click();
-  $("#npPrev").onclick = () => $("#btnPrev").click();
-  $("#npNext").onclick = () => $("#btnNext").click();
-  $("#npRepeat").onclick = () => $("#btnRepeat").click();
-  $("#npPlay").onclick = () => $("#btnPlay").click();
-  $("#npSeek").oninput = (e) => {
-    const p = +e.target.value / 1000;
-    if (audio.duration) audio.currentTime = p * audio.duration;
-    e.target.style.setProperty("--_val", e.target.value / 10 + "%");
-  };
+  $("#npShuffle") && ($("#npShuffle").onclick = () => $("#btnShuffle").click());
+  $("#npPrev") && ($("#npPrev").onclick = () => $("#btnPrev").click());
+  $("#npNext") && ($("#npNext").onclick = () => $("#btnNext").click());
+  $("#npRepeat") && ($("#npRepeat").onclick = () => $("#btnRepeat").click());
+  $("#npPlay") && ($("#npPlay").onclick = () => $("#btnPlay").click());
+  $("#npSeek") &&
+    ($("#npSeek").oninput = (e) => {
+      const p = +e.target.value / 1000;
+      if (audio.duration) audio.currentTime = p * audio.duration;
+      e.target.style.setProperty("--_val", e.target.value / 10 + "%");
+    });
 
   // Audio events
   audio.addEventListener("timeupdate", () => {
-    $("#cur").textContent = fmt(audio.currentTime);
-    $("#dur").textContent = fmt(audio.duration || 0);
+    $("#cur") && ($("#cur").textContent = fmt(audio.currentTime));
+    $("#dur") && ($("#dur").textContent = fmt(audio.duration || 0));
     if (audio.duration) {
       const val = Math.floor((audio.currentTime / audio.duration) * 1000);
       ["#seek", "#npSeek"].forEach((sel) => {
@@ -340,8 +349,8 @@ function bindUI() {
         }
       });
     }
-    $("#npCur").textContent = fmt(audio.currentTime);
-    $("#npDur").textContent = fmt(audio.duration || 0);
+    $("#npCur") && ($("#npCur").textContent = fmt(audio.currentTime));
+    $("#npDur") && ($("#npDur").textContent = fmt(audio.duration || 0));
     updatePositionState();
   });
   audio.addEventListener("play", () => {
@@ -355,64 +364,72 @@ function bindUI() {
     updatePositionState();
   });
   audio.addEventListener("ended", () => {
-    if (state.repeat === "one") {
-      playIndex(state.currentIndex);
-    } else {
-      next();
-    }
+    if (state.repeat === "one") playIndex(state.currentIndex);
+    else next();
   });
 
   // Drawer mobile
-  $("#btnToggleAside").onclick = toggleAside;
-  $("#drawerMask").onclick = closeAside;
+  $("#btnToggleAside") && ($("#btnToggleAside").onclick = toggleAside);
+  $("#drawerMask") && ($("#drawerMask").onclick = closeAside);
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeAside();
   });
+
+  // Sélection multiple
+  $("#btnEnterSelect") &&
+    ($("#btnEnterSelect").onclick = () => enterSelectMode(true));
+  $("#bulkSelectAll") && ($("#bulkSelectAll").onclick = selectAllVisible);
+  $("#bulkDelete") && ($("#bulkDelete").onclick = deleteSelectedSongs);
+  $("#bulkCancel") && ($("#bulkCancel").onclick = () => enterSelectMode(false));
 }
 
 /* ======= Drawer mobile ======= */
 function toggleAside() {
   document.body.classList.toggle("aside-open");
   const open = document.body.classList.contains("aside-open");
-  $("#drawerMask").hidden = !open;
-  requestAnimationFrame(() => $("#drawerMask").classList.toggle("show", open));
+  $("#drawerMask") && ($("#drawerMask").hidden = !open);
+  requestAnimationFrame(
+    () => $("#drawerMask") && $("#drawerMask").classList.toggle("show", open)
+  );
 }
 function closeAside() {
   document.body.classList.remove("aside-open");
-  $("#drawerMask").classList.remove("show");
-  setTimeout(() => ($("#drawerMask").hidden = true), 160);
+  $("#drawerMask") && $("#drawerMask").classList.remove("show");
+  setTimeout(() => $("#drawerMask") && ($("#drawerMask").hidden = true), 160);
 }
 
 /* ======= Views ======= */
 function setScope(scope) {
   state.scope = scope;
-  // hide all
-  $("#viewSongs").style.display = "none";
-  $("#viewAlbums").style.display = "none";
-  $("#viewPlaylists").style.display = "none";
-  $("#albumView").style.display = "none";
-  $("#playlistView").style.display = "none";
+  $("#viewSongs") && ($("#viewSongs").style.display = "none");
+  $("#viewAlbums") && ($("#viewAlbums").style.display = "none");
+  $("#viewPlaylists") && ($("#viewPlaylists").style.display = "none");
+  $("#albumView") && ($("#albumView").style.display = "none");
+  $("#playlistView") && ($("#playlistView").style.display = "none");
 
   if (scope.type === "albumGrid") {
     $("#viewAlbums").style.display = "block";
-    $("#currentScope").textContent = "Albums";
+    $("#currentScope") && ($("#currentScope").textContent = "Albums");
     renderAlbums();
   } else if (scope.type === "playlistGrid") {
     $("#viewPlaylists").style.display = "block";
-    $("#currentScope").textContent = "Playlists";
+    $("#currentScope") && ($("#currentScope").textContent = "Playlists");
     renderPlaylistsGrid();
   } else if (scope.type === "albumDetail") {
     $("#albumView").style.display = "block";
-    $("#currentScope").textContent = "Album – " + (scope.name || "");
+    $("#currentScope") &&
+      ($("#currentScope").textContent = "Album – " + (scope.name || ""));
     renderAlbumDetail(scope.name);
   } else if (scope.type === "playlistDetail") {
     $("#playlistView").style.display = "block";
-    $("#currentScope").textContent = "Playlist – " + (scope.name || "");
+    $("#currentScope") &&
+      ($("#currentScope").textContent = "Playlist – " + (scope.name || ""));
     renderPlaylistDetail(state.currentPlaylistId);
   } else {
     $("#viewSongs").style.display = "block";
-    $("#currentScope").textContent =
-      scope.type === "fav" ? "Favoris" : "Musique";
+    $("#currentScope") &&
+      ($("#currentScope").textContent =
+        scope.type === "fav" ? "Favoris" : "Musique");
     renderSongs();
   }
   rebuildQueue();
@@ -426,12 +443,12 @@ function showPlaylists() {
 
 function showAlbumDetail(name) {
   state.scope = { type: "albumDetail", name };
-  $("#viewSongs").style.display = "none";
-  $("#viewAlbums").style.display = "none";
-  $("#viewPlaylists").style.display = "none";
-  $("#playlistView").style.display = "none";
-  $("#albumView").style.display = "block";
-  $("#currentScope").textContent = "Album – " + name;
+  $("#viewSongs") && ($("#viewSongs").style.display = "none");
+  $("#viewAlbums") && ($("#viewAlbums").style.display = "none");
+  $("#viewPlaylists") && ($("#viewPlaylists").style.display = "none");
+  $("#playlistView") && ($("#playlistView").style.display = "none");
+  $("#albumView") && ($("#albumView").style.display = "block");
+  $("#currentScope") && ($("#currentScope").textContent = "Album – " + name);
   renderAlbumDetail(name);
 }
 async function showPlaylistDetail(id) {
@@ -439,18 +456,19 @@ async function showPlaylistDetail(id) {
   const pl = await DB.get("playlists", id);
   const name = pl?.name || "—";
   state.scope = { type: "playlistDetail", id, name, ids: pl?.ids || [] };
-  $("#viewSongs").style.display = "none";
-  $("#viewAlbums").style.display = "none";
-  $("#viewPlaylists").style.display = "none";
-  $("#albumView").style.display = "none";
-  $("#playlistView").style.display = "block";
-  $("#currentScope").textContent = "Playlist – " + name;
+  $("#viewSongs") && ($("#viewSongs").style.display = "none");
+  $("#viewAlbums") && ($("#viewAlbums").style.display = "none");
+  $("#viewPlaylists") && ($("#viewPlaylists").style.display = "none");
+  $("#albumView") && ($("#albumView").style.display = "none");
+  $("#playlistView") && ($("#playlistView").style.display = "block");
+  $("#currentScope") && ($("#currentScope").textContent = "Playlist – " + name);
   await renderPlaylistDetail(id);
 }
 
 /* ======= Side albums ======= */
 function renderSideAlbums() {
   const side = $("#sideAlbums");
+  if (!side) return;
   side.innerHTML = "";
   const map = groupAlbums();
   let i = 0;
@@ -486,14 +504,14 @@ function groupAlbums() {
 }
 function renderAlbums() {
   const grid = $("#albumGrid");
+  if (!grid) return;
   grid.innerHTML = "";
   const map = groupAlbums();
   [...map.values()].forEach((al) => {
     const div = document.createElement("div");
     div.className = "card";
-    div.innerHTML = `<img class="cv" src="${
-      al.cover || ""
-    }" alt=""><div class="ttl">${al.name}</div><div class="sub">${
+    div.innerHTML = `<img class="cv" src="${al.cover || ""}" alt="">
+      <div class="ttl">${al.name}</div><div class="sub">${
       al.count
     } titres</div>`;
     div.onclick = () => showAlbumDetail(al.name);
@@ -504,6 +522,7 @@ function renderAlbums() {
 /* ======= Grille Playlists ======= */
 async function renderPlaylistsGrid() {
   const grid = $("#playlistGrid");
+  if (!grid) return;
   grid.innerHTML = "";
   const pls = await DB.all("playlists");
   pls.forEach((pl) => {
@@ -511,7 +530,9 @@ async function renderPlaylistsGrid() {
     const cover = pl.image || "";
     const card = document.createElement("div");
     card.className = "card";
-    card.innerHTML = `<img class="cv" src="${cover}" alt=""><div class="ttl">${pl.name}</div><div class="sub">${count} titre(s)</div>`;
+    card.innerHTML = `<img class="cv" src="${cover}" alt="">
+      <div class="ttl">${pl.name}</div>
+      <div class="sub">${count} titre(s)</div>`;
     card.onclick = () => showPlaylistDetail(pl.id);
     grid.appendChild(card);
   });
@@ -524,89 +545,121 @@ async function renderAlbumDetail(name) {
   );
   const art = list[0]?.artist || "—";
   const cover = list.find((s) => s.coverDataUrl)?.coverDataUrl || "";
-  $("#albumTitle").textContent = name;
-  $("#albumSub").textContent = `${art} • ${list.length} titre(s) • ${fmt(
-    list.reduce((a, s) => a + (s.duration || 0), 0)
-  )}`;
-  $("#albumCover").src = cover;
+  $("#albumTitle") && ($("#albumTitle").textContent = name);
+  $("#albumSub") &&
+    ($("#albumSub").textContent = `${art} • ${list.length} titre(s) • ${fmt(
+      list.reduce((a, s) => a + (s.duration || 0), 0)
+    )}`);
+  $("#albumCover") && ($("#albumCover").src = cover);
   const [r, g, b] = await dominantColor(cover);
-  $(
-    "#albumHero"
-  ).style.background = `linear-gradient(180deg, rgba(${r},${g},${b},.45), transparent 420px)`;
+  $("#albumHero") &&
+    ($(
+      "#albumHero"
+    ).style.background = `linear-gradient(180deg, rgba(${r},${g},${b},.45), transparent 420px)`);
 
   const tbody = $("#albumTbody");
+  if (!tbody) return;
   tbody.innerHTML = "";
   list.forEach((s, i) => {
     const tr = document.createElement("tr");
     tr.className = "row";
-    tr.innerHTML = `<td>${i + 1}</td>
+    const checked = state.selection.has(s.id) ? "checked" : "";
+    tr.innerHTML = `<td>${
+      state.selectMode
+        ? `<input type="checkbox" class="sel" ${checked} data-sel="${s.id}">`
+        : i + 1
+    }</td>
       <td><div class="song"><div class="thumb">${
         s.coverDataUrl ? `<img src="${s.coverDataUrl}">` : "🎵"
       }</div>
       <div style="display:grid"><div style="font-weight:800">${
         s.name || "(sans titre)"
-      }</div><div class="muted" style="font-size:.85rem">${
-      s.artist || "—"
-    }</div></div></div></td>
-      <td>${s.duration ? fmt(s.duration) : "—"}</td>
-      <td><button class="btn icon" data-like="${
-        s.id
-      }"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart-icon lucide-heart"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></span></button></td>
+      }</div>
+      <div class="muted" style="font-size:.85rem">${
+        s.artist || "—"
+      }</div></div></div></td>
+      <td class="dur-cell">
+        <span>${s.duration ? fmt(s.duration) : "—"}</span>
+        ${
+          state.selectMode
+            ? ""
+            : `
+       `
+        }
+      </td>
+      <td>${
+        state.selectMode
+          ? ""
+          : `<button class="btn icon" data-like="${s.id}"><span><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart-icon lucide-heart"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></span></button>`
+      }</td>
       <td style="display:flex;gap:6px;justify-content:flex-end">
-        <button class="btn icon" data-play="${
-          s.id
-        }"><span><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play-icon lucide-play"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg></span></button>
-        <button class="btn icon" data-addtopl="${
-          s.id
-        }"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-icon lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span></button>
+        ${
+          state.selectMode
+            ? ""
+            : `
+ 
+        <button class="btn icon" data-addtopl="${s.id}"><span><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-icon lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span></button>
+           <button class="btn icon inline-del" title="Supprimer" data-del="${s.id}">
+            <span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </span>
+          </button>`
+        }
       </td>`;
     tr.onclick = (e) => {
-      if (e.target.closest("button")) return;
-      playById(s.id);
+      if (e.target.closest("button") || e.target.closest("input.sel")) return;
+      if (!state.selectMode) playById(s.id);
     };
     tbody.appendChild(tr);
   });
   hydrateIcons(tbody);
-  $$("[data-play]").forEach(
-    (b) =>
-      (b.onclick = (e) => {
-        e.stopPropagation();
-        playById(b.dataset.play);
-      })
-  );
-  $$("[data-like]").forEach(
+
+  $$("input.sel", tbody).forEach((cb) => {
+    cb.onchange = () => toggleSelect(cb.dataset.sel, cb.checked);
+  });
+
+  $$("[data-like]", tbody).forEach(
     (b) =>
       (b.onclick = (e) => {
         e.stopPropagation();
         toggleLike(b.dataset.like, b);
       })
   );
-  $$("[data-addtopl]").forEach(
+  $$("[data-addtopl]", tbody).forEach(
     (b) =>
       (b.onclick = (e) => {
         e.stopPropagation();
         openAddToPlaylistDialog(b.dataset.addtopl);
       })
   );
+  $$("[data-del]", tbody).forEach(
+    (b) =>
+      (b.onclick = (e) => {
+        e.stopPropagation();
+        deleteSong(b.dataset.del);
+      })
+  );
 
-  $("#albumPlay").onclick = () => {
-    state.queue = list.map((s) => s.id);
-    state.currentIndex = -1;
-    playIndex(0);
-  };
-  $("#albumShuffle").onclick = () => {
-    state.queue = list.map((s) => s.id);
-    for (let i = state.queue.length - 1; i > 0; i--) {
-      const j = (Math.random() * (i + 1)) | 0;
-      [state.queue[i], state.queue[j]] = [state.queue[j], state.queue[i]];
-    }
-    playIndex(0);
-  };
+  $("#albumPlay") &&
+    ($("#albumPlay").onclick = () => {
+      state.queue = list.map((s) => s.id);
+      state.currentIndex = -1;
+      playIndex(0);
+    });
+  $("#albumShuffle") &&
+    ($("#albumShuffle").onclick = () => {
+      state.queue = list.map((s) => s.id);
+      for (let i = state.queue.length - 1; i > 0; i--) {
+        const j = (Math.random() * (i + 1)) | 0;
+        [state.queue[i], state.queue[j]] = [state.queue[j], state.queue[i]];
+      }
+      playIndex(0);
+    });
 }
 
-/* ======= Songs list ======= */
+/* ======= Songs list (inclut bouton supprimer dans la cellule durée + mobile) ======= */
 async function renderSongs() {
-  const q = ($("#search").value || "").toLowerCase();
+  const q = ($("#search")?.value || "").toLowerCase();
   let list = state.songs.slice();
   if (state.scope.type === "playlist") {
     const ids = state.scope.ids || [];
@@ -621,133 +674,185 @@ async function renderSongs() {
         .includes(q)
     );
 
-  $("#songsSubtitle").textContent = `${list.length} titre${
-    list.length > 1 ? "s" : ""
-  }`;
+  $("#songsSubtitle") &&
+    ($("#songsSubtitle").textContent = `${list.length} titre${
+      list.length > 1 ? "s" : ""
+    }`);
   applySongsHeaderTheme();
 
+  // Table desktop
   const tbody = $("#songTbody");
-  tbody.innerHTML = "";
-  list.forEach((s, i) => {
-    const tr = document.createElement("tr");
-    tr.className = "row";
-    tr.dataset.id = s.id;
-    tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td><div class="song">
-        <div class="thumb">${
-          s.coverDataUrl ? `<img src="${s.coverDataUrl}" alt="">` : "🎵"
-        }</div>
-        <div style="display:grid">
-          <div style="font-weight:800;max-width:48vw;white-space:nowrap;text-overflow:ellipsis;overflow:hidden">${
-            s.name || "(sans titre)"
+  if (tbody) {
+    tbody.innerHTML = "";
+    list.forEach((s, i) => {
+      const tr = document.createElement("tr");
+      tr.className = "row";
+      tr.dataset.id = s.id;
+      const checked = state.selection.has(s.id) ? "checked" : "";
+      tr.innerHTML = `
+        <td>${
+          state.selectMode
+            ? `<input type="checkbox" class="sel" ${checked} data-sel="${s.id}">`
+            : i + 1
+        }</td>
+        <td><div class="song">
+          <div class="thumb">${
+            s.coverDataUrl ? `<img src="${s.coverDataUrl}" alt="">` : "🎵"
           }</div>
-          <div class="muted" style="font-size:.85rem">${
-            s.album || "Sans album"
-          }</div>
-        </div>
-      </div></td>
-      <td>${s.artist || "—"}</td>
-      <td>${s.album || "—"}</td>
-      <td>${s.duration ? fmt(s.duration) : "—"}</td>
-      <td><button class="btn icon" data-like="${
-        s.id
-      }"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart-icon lucide-heart"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></span></button></td>
-      <td style="display:flex;gap:6px;justify-content:flex-end">
-        <button class="btn icon" title="Lire" data-play="${
-          s.id
-        }"><span><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play-icon lucide-play"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg></span></button>
-        <button class="btn icon" title="Ajouter à une playlist" data-addtopl="${
-          s.id
-        }"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-icon lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span></button>
-        <button class="btn icon" title="Modifier" data-edit="${
-          s.id
-        }"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pen-line-icon lucide-pen-line"><path d="M13 21h8"/><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg></span></button>
-        <button class="btn icon" title="Supprimer" data-del="${
-          s.id
-        }"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash2-icon lucide-trash-2"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
-      </td>`;
-    tr.onclick = (e) => {
-      if (e.target.closest("button")) return;
-      playById(s.id);
-    };
-    tbody.appendChild(tr);
-  });
-  hydrateIcons(tbody);
+          <div style="display:grid">
+            <div style="font-weight:800;max-width:48vw;white-space:nowrap;text-overflow:ellipsis;overflow:hidden">${
+              s.name || "(sans titre)"
+            }</div>
+            <div class="muted" style="font-size:.85rem">${
+              s.album || "Sans album"
+            }</div>
+          </div>
+        </div></td>
+        <td>${s.artist || "—"}</td>
+        <td>${s.album || "—"}</td>
+        <td class="dur-cell">
+          <span>${s.duration ? fmt(s.duration) : "—"}</span>
+        </td>
+        <td>${
+          state.selectMode
+            ? ""
+            : `<button class="btn icon" data-like="${s.id}"><span><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart-icon lucide-heart"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></span></button>`
+        }</td>
+        <td style="display:flex;gap:6px;justify-content:flex-end">
+          ${
+            state.selectMode
+              ? ""
+              : `
+          <button class="btn icon" title="Ajouter à une playlist" data-addtopl="${s.id}"><span><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-icon lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span></button>
+          <button class="btn icon" title="Modifier" data-edit="${s.id}"><span><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pen-line-icon lucide-pen-line"><path d="M13 21h8"/><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg></span></button>
+              <button class="btn icon inline-del" title="Supprimer" data-del="${s.id}">
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </span>
+            </button>
+          `
+          }
+        </td>`;
+      tr.onclick = (e) => {
+        if (e.target.closest("button") || e.target.closest("input.sel")) return;
+        if (!state.selectMode) playById(s.id);
+      };
+      tbody.appendChild(tr);
+    });
+    hydrateIcons(tbody);
+
+    $$("input.sel", tbody).forEach((cb) => {
+      cb.onchange = () => toggleSelect(cb.dataset.sel, cb.checked);
+    });
+    $$("[data-play]", tbody).forEach(
+      (b) =>
+        (b.onclick = (e) => {
+          e.stopPropagation();
+          playById(b.dataset.play);
+        })
+    );
+    $$("[data-like]", tbody).forEach(
+      (b) =>
+        (b.onclick = (e) => {
+          e.stopPropagation();
+          toggleLike(b.dataset.like, b);
+        })
+    );
+    $$("[data-addtopl]", tbody).forEach(
+      (b) =>
+        (b.onclick = (e) => {
+          e.stopPropagation();
+          openAddToPlaylistDialog(b.dataset.addtopl);
+        })
+    );
+    $$("[data-edit]", tbody).forEach(
+      (b) =>
+        (b.onclick = (e) => {
+          e.stopPropagation();
+          openEditSong(b.dataset.edit);
+        })
+    );
+    $$("[data-del]", tbody).forEach(
+      (b) =>
+        (b.onclick = (e) => {
+          e.stopPropagation();
+          deleteSong(b.dataset.del);
+        })
+    );
+  }
 
   // Liste mobile
   const ml = $("#songListMobile");
-  ml.innerHTML = "";
-  list.forEach((s) => {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.dataset.id = s.id;
-    div.innerHTML = `
-      <div class="cover">${
-        s.coverDataUrl ? `<img src="${s.coverDataUrl}" alt="">` : "🎵"
-      }</div>
-      <div><div class="t">${s.name || "(sans titre)"}</div><div class="a">${
-      s.artist || "—"
-    }</div></div>
-      <div class="actions">
-        <button class="kebab" title="Favori" data-like="${
-          s.id
-        }"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart-icon lucide-heart"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></span></button>
-        <button class="kebab" title="Plus" data-addtopl="${
-          s.id
-        }"><span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-icon lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span></button>
-      </div>`;
-    div.onclick = (e) => {
-      if (e.target.closest(".actions")) return;
-      playById(s.id);
-    };
-    ml.appendChild(div);
-  });
-  hydrateIcons(ml);
+  if (ml) {
+    ml.innerHTML = "";
+    list.forEach((s) => {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.dataset.id = s.id;
+      div.innerHTML = `
+        <div class="cover">${
+          s.coverDataUrl ? `<img src="${s.coverDataUrl}" alt="">` : "🎵"
+        }</div>
+        <div class="meta">
+          <div class="t">${s.name || "(sans titre)"}</div>
+          <div class="a">${s.artist || "—"}</div>
+          <div class="d">${s.duration ? fmt(s.duration) : "—"}</div>
+        </div>
+        <div class="actions">
+          ${
+            state.selectMode
+              ? ""
+              : `
+       
+          <button class="kebab" title="Favori" data-like="${s.id}"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart-icon lucide-heart"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></span></button>
+          <button class="kebab" title="Ajouter" data-addtopl="${s.id}"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-icon lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span></button>
+          <button class="kebab danger" title="Supprimer" data-del="${s.id}"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash2-icon lucide-trash-2"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
+          `
+          }
+        </div>`;
+      div.onclick = (e) => {
+        if (e.target.closest(".actions")) return;
+        if (!state.selectMode) playById(s.id);
+      };
+      ml.appendChild(div);
+    });
+    hydrateIcons(ml);
 
-  $$("[data-play]").forEach(
-    (b) =>
-      (b.onclick = (e) => {
-        e.stopPropagation();
-        playById(b.dataset.play);
-      })
-  );
-  $$("[data-like]").forEach(
-    (b) =>
-      (b.onclick = (e) => {
-        e.stopPropagation();
-        toggleLike(b.dataset.like, b);
-      })
-  );
-  $$("[data-addtopl]").forEach(
-    (b) =>
-      (b.onclick = (e) => {
-        e.stopPropagation();
-        openAddToPlaylistDialog(b.dataset.addtopl);
-      })
-  );
-  $$("[data-edit]").forEach(
-    (b) =>
-      (b.onclick = (e) => {
-        e.stopPropagation();
-        openEditSong(b.dataset.edit);
-      })
-  );
-  $$("[data-del]").forEach(
-    (b) =>
-      (b.onclick = (e) => {
-        e.stopPropagation();
-        deleteSong(b.dataset.del);
-      })
-  );
+    $$("[data-play]", ml).forEach(
+      (b) =>
+        (b.onclick = (e) => {
+          e.stopPropagation();
+          playById(b.dataset.play);
+        })
+    );
+    $$("[data-like]", ml).forEach(
+      (b) =>
+        (b.onclick = (e) => {
+          e.stopPropagation();
+          toggleLike(b.dataset.like, b);
+        })
+    );
+    $$("[data-addtopl]", ml).forEach(
+      (b) =>
+        (b.onclick = (e) => {
+          e.stopPropagation();
+          openAddToPlaylistDialog(b.dataset.addtopl);
+        })
+    );
+    $$("[data-del]", ml).forEach(
+      (b) =>
+        (b.onclick = (e) => {
+          e.stopPropagation();
+          deleteSong(b.dataset.del);
+        })
+    );
+  }
 }
 
 /* ======= Player ======= */
 function smartPlay() {
   if (!audio.src || audio.src === window.location.href) {
-    if (!state.queue.length) {
-      rebuildQueue();
-    }
+    if (!state.queue.length) rebuildQueue();
     if (state.queue.length) {
       const index = state.currentIndex >= 0 ? state.currentIndex : 0;
       playIndex(index);
@@ -846,10 +951,11 @@ function prev() {
   playIndex(i);
 }
 function updateNowUI(s) {
-  $("#nowTitle").textContent = s.name || "—";
-  $("#nowArtist").textContent = s.artist || "—";
-  $("#nowCover").src = s.coverDataUrl || "";
-  $("#btnLike").classList.toggle("primary", state.favorites.has(s.id));
+  $("#nowTitle") && ($("#nowTitle").textContent = s.name || "—");
+  $("#nowArtist") && ($("#nowArtist").textContent = s.artist || "—");
+  $("#nowCover") && ($("#nowCover").src = s.coverDataUrl || "");
+  $("#btnLike") &&
+    $("#btnLike").classList.toggle("primary", state.favorites.has(s.id));
   $("#npTitle") && ($("#npTitle").textContent = s.name || "—");
   $("#npArtist") && ($("#npArtist").textContent = s.artist || "—");
   $("#npCover") && ($("#npCover").src = s.coverDataUrl || "");
@@ -878,7 +984,7 @@ async function ensurePermission(h) {
   return false;
 }
 
-/* ======= Import (non UI — appels manuels si tu ajoutes des boutons) ======= */
+/* ======= Import (non UI) ======= */
 async function pickFiles() {
   if (!supportsFS) {
     alert("Navigateur sans sélecteur moderne. Utilise Fallback.");
@@ -970,6 +1076,7 @@ function postImport() {
   else if (state.scope.type === "playlistDetail")
     renderPlaylistDetail(state.currentPlaylistId);
   else renderSongs();
+  attachAlbumAutocomplete(); // refresh autocomplete
 }
 
 /* ======= CRUD chanson ======= */
@@ -1050,12 +1157,26 @@ async function openEditSong(id) {
   $("#songAlbum").value = s.album || "";
   $("#songCoverPreview").src = s.coverDataUrl || "";
   $("#songFile").value = "";
+  attachAlbumAutocomplete();
   songDialog.showModal();
 }
 async function deleteSong(id) {
   if (!confirm("Supprimer cette chanson ?")) return;
   await DB.del("songs", id);
   state.songs = state.songs.filter((s) => s.id !== id);
+
+  // enlever des playlists
+  const pls = await DB.all("playlists");
+  await Promise.all(
+    pls.map(async (pl) => {
+      if (pl.ids?.length) {
+        const before = pl.ids.length;
+        pl.ids = pl.ids.filter((sid) => sid !== id);
+        if (pl.ids.length !== before) await DB.put("playlists", pl);
+      }
+    })
+  );
+
   postImport();
 }
 
@@ -1070,7 +1191,8 @@ async function toggleLikeCurrent() {
   const id = state.queue[state.currentIndex];
   if (!id) return;
   await toggleLike(id);
-  $("#btnLike").classList.toggle("primary", state.favorites.has(id));
+  $("#btnLike") &&
+    $("#btnLike").classList.toggle("primary", state.favorites.has(id));
 }
 
 /* ======= Playlists: sidebar (list) ======= */
@@ -1083,7 +1205,7 @@ async function renderPlaylists() {
     const a = document.createElement("div");
     a.className = "playlist-item";
     a.innerHTML = `<div class="pl-cover">${
-      pl.image ? `<img src="${pl.image}" alt="">` : "🎧"
+      pl.image ? `<img src="${pl.image}" alt="image">` : "🎧"
     }</div>
       <div><div class="pl-title">${
         pl.name
@@ -1093,15 +1215,14 @@ async function renderPlaylists() {
       <div style="display:flex;gap:6px">
         <button class="btn icon" data-openpl="${
           pl.id
-        }" title="Ouvrir"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-open-icon lucide-folder-open"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg></span></button>
+        }" title="Ouvrir"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-open-icon lucide-folder-open"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg></span></button>
         <button class="btn icon" data-editpl="${
           pl.id
-        }" title="Modifier"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pencil-line-icon lucide-pencil-line"><path d="M13 21h8"/><path d="m15 5 4 4"/><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg></span></button>
+        }" title="Modifier"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pen-line-icon lucide-pen-line"><path d="M13 21h8"/><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg></span></button>
         <button class="btn icon" data-delpl="${
           pl.id
-        }" title="Supprimer"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash2-icon lucide-trash-2"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
+        }" title="Supprimer"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash2-icon lucide-trash-2"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
       </div>`;
-    // rendre toute la ligne cliquable aussi
     a.onclick = (e) => {
       if (e.target.closest("button")) return;
       showPlaylistDetail(pl.id);
@@ -1109,68 +1230,75 @@ async function renderPlaylists() {
     wrap.appendChild(a);
   });
   hydrateIcons(wrap);
-  $$("button[data-openpl]").forEach(
+  $$("button[data-openpl]", wrap).forEach(
     (b) =>
       (b.onclick = async () => {
         await showPlaylistDetail(b.dataset.openpl);
         closeAside();
       })
   );
-  $$("button[data-editpl]").forEach(
+  $$("button[data-editpl]", wrap).forEach(
     (b) => (b.onclick = () => openEditPlaylistDialog(b.dataset.editpl))
   );
-  $$("button[data-delpl]").forEach(
+  $$("button[data-delpl]", wrap).forEach(
     (b) => (b.onclick = () => deletePlaylist(b.dataset.delpl))
   );
 }
 
 /* ======= Playlists: CRUD ======= */
 function openNewPlaylistDialog() {
-  $("#plDialogTitle").textContent = "Nouvelle playlist";
-  $("#plName").value = "";
-  $("#plCoverPreview").src = "";
-  $("#plCoverInput").value = "";
-  $("#plCoverInput").onchange = async (e) => {
-    const f = e.target.files[0];
-    if (f) $("#plCoverPreview").src = await readAsDataURL(f);
-  };
-  $("#plSave").onclick = async () => {
-    const id = crypto.randomUUID();
-    const name = $("#plName").value.trim() || "Ma playlist";
-    const image = $("#plCoverPreview").src || "";
-    await DB.put("playlists", { id, name, image, ids: [] });
-    plDialog.close();
-    renderPlaylists();
-    if (state.scope.type === "playlistGrid") renderPlaylistsGrid();
-  };
+  $("#plDialogTitle") &&
+    ($("#plDialogTitle").textContent = "Nouvelle playlist");
+  $("#plName") && ($("#plName").value = "");
+  $("#plCoverPreview") && ($("#plCoverPreview").src = "");
+  $("#plCoverInput") && ($("#plCoverInput").value = "");
+  $("#plCoverInput") &&
+    ($("#plCoverInput").onchange = async (e) => {
+      const f = e.target.files[0];
+      if (f) $("#plCoverPreview").src = await readAsDataURL(f);
+    });
+  $("#plSave") &&
+    ($("#plSave").onclick = async () => {
+      const id = crypto.randomUUID();
+      const name = $("#plName")?.value.trim() || "Ma playlist";
+      const image = $("#plCoverPreview")?.src || "";
+      await DB.put("playlists", { id, name, image, ids: [] });
+      plDialog.close();
+      renderPlaylists();
+      if (state.scope.type === "playlistGrid") renderPlaylistsGrid();
+    });
   plDialog.showModal();
 }
 async function openEditPlaylistDialog(id) {
   const pl = await DB.get("playlists", id);
   if (!pl) return;
-  $("#plDialogTitle").textContent = "Modifier la playlist";
-  $("#plName").value = pl.name;
-  $("#plCoverPreview").src = pl.image || "";
-  $("#plCoverInput").value = "";
-  $("#plCoverInput").onchange = async (e) => {
-    const f = e.target.files[0];
-    if (f) $("#plCoverPreview").src = await readAsDataURL(f);
-  };
-  $("#plSave").onclick = async () => {
-    pl.name = $("#plName").value.trim() || pl.name;
-    pl.image = $("#plCoverPreview").src || "";
-    await DB.put("playlists", pl);
-    plDialog.close();
-    renderPlaylists();
-    if (
-      state.scope.type === "playlistDetail" &&
-      state.currentPlaylistId === pl.id
-    ) {
-      $("#currentScope").textContent = "Playlist – " + pl.name;
-      renderPlaylistDetail(pl.id);
-    }
-    if (state.scope.type === "playlistGrid") renderPlaylistsGrid();
-  };
+  $("#plDialogTitle") &&
+    ($("#plDialogTitle").textContent = "Modifier la playlist");
+  $("#plName") && ($("#plName").value = pl.name);
+  $("#plCoverPreview") && ($("#plCoverPreview").src = pl.image || "");
+  $("#plCoverInput") && ($("#plCoverInput").value = "");
+  $("#plCoverInput") &&
+    ($("#plCoverInput").onchange = async (e) => {
+      const f = e.target.files[0];
+      if (f) $("#plCoverPreview").src = await readAsDataURL(f);
+    });
+  $("#plSave") &&
+    ($("#plSave").onclick = async () => {
+      pl.name = $("#plName").value.trim() || pl.name;
+      pl.image = $("#plCoverPreview").src || "";
+      await DB.put("playlists", pl);
+      plDialog.close();
+      renderPlaylists();
+      if (
+        state.scope.type === "playlistDetail" &&
+        state.currentPlaylistId === pl.id
+      ) {
+        $("#currentScope") &&
+          ($("#currentScope").textContent = "Playlist – " + pl.name);
+        renderPlaylistDetail(pl.id);
+      }
+      if (state.scope.type === "playlistGrid") renderPlaylistsGrid();
+    });
   plDialog.showModal();
 }
 async function deletePlaylist(id) {
@@ -1183,12 +1311,11 @@ async function deletePlaylist(id) {
 }
 async function openAddToPlaylistDialog(songId) {
   const body = $("#plAddBody");
+  if (!body) return;
   body.innerHTML = "";
   const pls = await DB.all("playlists");
   if (!pls.length) {
-    if (confirm("Aucune playlist. En créer une ?")) {
-      openNewPlaylistDialog();
-    }
+    if (confirm("Aucune playlist. En créer une ?")) openNewPlaylistDialog();
     return;
   }
   pls.forEach((pl) => {
@@ -1196,32 +1323,33 @@ async function openAddToPlaylistDialog(songId) {
     line.style.display = "flex";
     line.style.alignItems = "center";
     line.style.gap = "10px";
-    line.innerHTML = `<input type="radio" name="plAdd" value="${
-      pl.id
-    }" /> <div class="pl-cover" style="width:40px;height:40px">${
+    line.innerHTML = `<input type="radio" name="plAdd" value="${pl.id}" />
+    <div class="pl-cover" style="width:40px;height:40px">${
       pl.image ? `<img src="${pl.image}">` : "🎧"
-    }</div> <div>${pl.name}</div>`;
+    }</div>
+    <div>${pl.name}</div>`;
     body.appendChild(line);
   });
   plAddDialog.showModal();
-  $("#plAddConfirm").onclick = async () => {
-    const chosen = body.querySelector('input[name="plAdd"]:checked');
-    if (!chosen) {
-      alert("Choisis une playlist.");
-      return;
-    }
-    const pl = await DB.get("playlists", chosen.value);
-    pl.ids = pl.ids || [];
-    if (!pl.ids.includes(songId)) pl.ids.push(songId);
-    await DB.put("playlists", pl);
-    plAddDialog.close();
-    renderPlaylists();
-    if (
-      state.scope.type === "playlistDetail" &&
-      state.currentPlaylistId === pl.id
-    )
-      renderPlaylistDetail(pl.id);
-  };
+  $("#plAddConfirm") &&
+    ($("#plAddConfirm").onclick = async () => {
+      const chosen = body.querySelector('input[name="plAdd"]:checked');
+      if (!chosen) {
+        alert("Choisis une playlist.");
+        return;
+      }
+      const pl = await DB.get("playlists", chosen.value);
+      pl.ids = pl.ids || [];
+      if (!pl.ids.includes(songId)) pl.ids.push(songId);
+      await DB.put("playlists", pl);
+      plAddDialog.close();
+      renderPlaylists();
+      if (
+        state.scope.type === "playlistDetail" &&
+        state.currentPlaylistId === pl.id
+      )
+        renderPlaylistDetail(pl.id);
+    });
 }
 
 /* ======= Vue Playlist ======= */
@@ -1238,84 +1366,234 @@ async function renderPlaylistDetail(id) {
   const cover =
     pl.image || list.find((s) => s.coverDataUrl)?.coverDataUrl || "";
 
-  $("#playlistTitle").textContent = pl.name || "—";
+  $("#playlistTitle") && ($("#playlistTitle").textContent = pl.name || "—");
   const totalDur = list.reduce((a, s) => a + (s?.duration || 0), 0);
-  $("#playlistSub").textContent = `${list.length} titre(s) • ${fmt(totalDur)}`;
-  $("#playlistCover").src = cover;
+  $("#playlistSub") &&
+    ($("#playlistSub").textContent = `${list.length} titre(s) • ${fmt(
+      totalDur
+    )}`);
+  $("#playlistCover") && ($("#playlistCover").src = cover);
   const [r, g, b] = await dominantColor(cover);
-  $(
-    "#playlistHero"
-  ).style.background = `linear-gradient(180deg, rgba(${r},${g},${b},.45), transparent 420px)`;
+  $("#playlistHero") &&
+    ($(
+      "#playlistHero"
+    ).style.background = `linear-gradient(180deg, rgba(${r},${g},${b},.45), transparent 420px)`);
 
   const tbody = $("#playlistTbody");
+  if (!tbody) return;
   tbody.innerHTML = "";
   list.forEach((s, i) => {
     const tr = document.createElement("tr");
     tr.className = "row";
-    tr.innerHTML = `<td>${i + 1}</td>
+    const checked = state.selection.has(s.id) ? "checked" : "";
+    tr.innerHTML = `<td>${
+      state.selectMode
+        ? `<input type="checkbox" class="sel" ${checked} data-sel="${s.id}">`
+        : i + 1
+    }</td>
       <td><div class="song"><div class="thumb">${
         s.coverDataUrl ? `<img src="${s.coverDataUrl}" alt="">` : "🎵"
-      }</div><div style="display:grid"><div style="font-weight:800">${
-      s.name || "(sans titre)"
-    }</div><div class="muted" style="font-size:.85rem">${
-      s.album || "—"
-    }</div></div></div></td>
+      }</div>
+      <div style="display:grid"><div style="font-weight:800">${
+        s.name || "(sans titre)"
+      }</div>
+      <div class="muted" style="font-size:.85rem">${
+        s.album || "—"
+      }</div></div></div></td>
       <td>${s.artist || "—"}</td>
-      <td>${s.duration ? fmt(s.duration) : "—"}</td>
-      <td><button class="btn icon" data-like="${
-        s.id
-      }"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart-icon lucide-heart"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></span></button></td>
+      <td class="dur-cell">
+        <span>${s.duration ? fmt(s.duration) : "—"}</span>
+        ${
+          state.selectMode
+            ? ""
+            : `
+         `
+        }
+      </td>
+      <td>${
+        state.selectMode
+          ? ""
+          : `<button class="btn icon" data-like="${s.id}"><span><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart-icon lucide-heart"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></span></button>`
+      }</td>
       <td style="display:flex;gap:6px;justify-content:flex-end">
-        <button class="btn icon" title="Lire" data-play="${
-          s.id
-        }"><span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play-icon lucide-play"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg></span></button>
-        <button class="btn icon" title="Ajouter à une playlist" data-addtopl="${
-          s.id
-        }"><span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-icon lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span></button>
+        ${
+          state.selectMode
+            ? ""
+            : `
+    
+        <button class="btn icon" title="Ajouter à une playlist" data-addtopl="${s.id}"><span><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-icon lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span></button>
+         <button class="btn icon inline-del" title="Supprimer" data-del="${s.id}">
+            <span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </span>
+          </button>`
+        }
       </td>`;
     tr.onclick = (e) => {
-      if (e.target.closest("button")) return;
-      playById(s.id);
+      if (e.target.closest("button") || e.target.closest("input.sel")) return;
+      if (!state.selectMode) playById(s.id);
     };
     tbody.appendChild(tr);
   });
   hydrateIcons(tbody);
 
-  $$("[data-play]").forEach(
+  $$("input.sel", tbody).forEach((cb) => {
+    cb.onchange = () => toggleSelect(cb.dataset.sel, cb.checked);
+  });
+  $$("[data-play]", tbody).forEach(
     (b) =>
       (b.onclick = (e) => {
         e.stopPropagation();
         playById(b.dataset.play);
       })
   );
-  $$("[data-like]").forEach(
+  $$("[data-like]", tbody).forEach(
     (b) =>
       (b.onclick = (e) => {
         e.stopPropagation();
         toggleLike(b.dataset.like, b);
       })
   );
-  $$("[data-addtopl]").forEach(
+  $$("[data-addtopl]", tbody).forEach(
     (b) =>
       (b.onclick = (e) => {
         e.stopPropagation();
         openAddToPlaylistDialog(b.dataset.addtopl);
       })
   );
+  $$("[data-del]", tbody).forEach(
+    (b) =>
+      (b.onclick = (e) => {
+        e.stopPropagation();
+        deleteSong(b.dataset.del);
+      })
+  );
 
-  $("#playlistPlay").onclick = () => {
-    state.queue = list.map((s) => s.id);
-    state.currentIndex = -1;
-    playIndex(0);
-  };
-  $("#playlistShuffle").onclick = () => {
-    state.queue = list.map((s) => s.id);
-    for (let i = state.queue.length - 1; i > 0; i--) {
-      const j = (Math.random() * (i + 1)) | 0;
-      [state.queue[i], state.queue[j]] = [state.queue[j], state.queue[i]];
-    }
-    playIndex(0);
-  };
+  $("#playlistPlay") &&
+    ($("#playlistPlay").onclick = () => {
+      state.queue = list.map((s) => s.id);
+      state.currentIndex = -1;
+      playIndex(0);
+    });
+  $("#playlistShuffle") &&
+    ($("#playlistShuffle").onclick = () => {
+      state.queue = list.map((s) => s.id);
+      for (let i = state.queue.length - 1; i > 0; i--) {
+        const j = (Math.random() * (i + 1)) | 0;
+        [state.queue[i], state.queue[j]] = [state.queue[j], state.queue[i]];
+      }
+      playIndex(0);
+    });
 }
+
+/* ======= Sélection multiple ======= */
+function enterSelectMode(on = true) {
+  state.selectMode = on;
+  state.selection.clear();
+  if (state.scope.type === "albumDetail") renderAlbumDetail(state.scope.name);
+  else if (state.scope.type === "playlistDetail")
+    renderPlaylistDetail(state.currentPlaylistId);
+  else if (state.scope.type === "albumGrid") renderAlbums();
+  else if (state.scope.type === "playlistGrid") renderPlaylistsGrid();
+  else renderSongs();
+  updateBulkBar();
+}
+function toggleSelect(id, checked) {
+  if (checked) state.selection.add(id);
+  else state.selection.delete(id);
+  updateBulkBar();
+}
+function selectAllVisible() {
+  const ids = _currentListForScope().map((s) => s.id);
+  ids.forEach((id) => state.selection.add(id));
+  updateBulkBar();
+  if (state.scope.type === "albumDetail") renderAlbumDetail(state.scope.name);
+  else if (state.scope.type === "playlistDetail")
+    renderPlaylistDetail(state.currentPlaylistId);
+  else renderSongs();
+}
+async function deleteSelectedSongs() {
+  if (!state.selection.size) {
+    alert("Sélection vide.");
+    return;
+  }
+  if (!confirm(`Supprimer ${state.selection.size} titre(s) ?`)) return;
+
+  const toDel = new Set(state.selection);
+  state.songs = state.songs.filter((s) => !toDel.has(s.id));
+  await Promise.all([...toDel].map((id) => DB.del("songs", id)));
+  const pls = await DB.all("playlists");
+  await Promise.all(
+    pls.map(async (pl) => {
+      if (pl.ids?.length) {
+        const before = pl.ids.length;
+        pl.ids = pl.ids.filter((id) => !toDel.has(id));
+        if (pl.ids.length !== before) await DB.put("playlists", pl);
+      }
+    })
+  );
+  state.selection.clear();
+  state.selectMode = false;
+  postImport();
+  alert("Suppression effectuée.");
+}
+function updateBulkBar() {
+  const bar = $("#bulkBar");
+  if (!bar) return;
+  bar.hidden = !state.selectMode;
+  $("#bulkCount") && ($("#bulkCount").textContent = state.selection.size);
+}
+
+/* ======= Album autocomplete ======= */
+function getAlbumNames() {
+  const set = new Set();
+  state.songs.forEach((s) => {
+    const a = (s.album || "").trim();
+    if (a) set.add(a);
+  });
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
+function attachAlbumAutocomplete() {
+  const input = $("#songAlbum");
+  if (!input) return;
+  let dl = $("#albumOptions");
+  if (!dl) {
+    dl = document.createElement("datalist");
+    dl.id = "albumOptions";
+    document.body.appendChild(dl);
+  }
+  const options = getAlbumNames();
+  dl.innerHTML = options
+    .map((name) => `<option value="${name}"></option>`)
+    .join("");
+  input.setAttribute("list", "albumOptions");
+}
+
+document.querySelectorAll("#btnPlay,#npPlay").forEach((btn) =>
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#btnPlay,#npPlay").forEach((b) => {
+      const isPlay = !!b.querySelector(".lucide-play");
+      b.innerHTML = isPlay
+        ? `<span><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pause"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg></span>`
+        : `<span><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg></span>`;
+      b.title = isPlay ? "Pause" : "Lire";
+    });
+  })
+);
+$("#btnShuffle").onclick = () => {
+  state.shuffle = !state.shuffle;
+  document
+    .querySelectorAll("#btnShuffle,#npShuffle")
+    .forEach((b) => b?.classList.toggle("primary", state.shuffle));
+  rebuildQueue();
+};
+$("#btnRepeat").onclick = () => {
+  state.repeat =
+    state.repeat === "off" ? "all" : state.repeat === "all" ? "one" : "off";
+  const on = state.repeat !== "off";
+  document
+    .querySelectorAll("#btnRepeat,#npRepeat")
+    .forEach((b) => b?.classList.toggle("primary", on));
+};
 
 hydrateIcons(document);
