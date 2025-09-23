@@ -10,15 +10,6 @@
     <link rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322c55e'/%3E%3Cstop offset='1' stop-color='%2381e6d9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='28' fill='url(%23g)'/%3E%3C/svg%3E" />
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-
-    <!-- NEW: variables d’accent par défaut (écrasées dynamiquement par JS) -->
-    <style>
-      :root{
-        --accent:#22c55e; --accent-strong:#16a34a; --accent-soft:#7fe6b0; --on-accent:#111;
-      }
-      /* cache temporaire des anciens sliders (fallback gardé) */
-      .legacy-seek{display:none;}
-    </style>
   </head>
   <body>
     <div class="app">
@@ -88,12 +79,6 @@
           <div class="section-title">Albums</div>
           <div id="sideAlbums" class="side-covers"></div>
         </div>
-
-        <section class="side-section">
-          <div class="side-title">Artistes</div>
-          <div id="sideArtists" class="side-grid"></div>
-        </section>
-
       </aside>
 
       <main id="main">
@@ -128,51 +113,6 @@
                   d="M8.644 21.42a10 10 0 0 0 7.631-.38" /></svg></span>
             Ajouter</button>
         </div>
-        <!-- Ajoute ceci dans le <main id="main">, juste APRÈS #playlistView -->
-
-        <!-- Vue Artiste -->
-        <div id="artistView" style="display:none">
-          <div class="hero" id="artistHero">
-            <img id="artistCover" class="cover" alt>
-            <div class="meta">
-              <div class="sub">Artiste</div>
-              <div class="title" id="artistTitle">Nom</div>
-              <div class="sub" id="artistSub">0 titres</div>
-              <div class="actions">
-                <button class="btn primary big" id="artistPlay">
-                  <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14"
-                      height="14" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" stroke-width="1.5"
-                      stroke-linecap="round" stroke-linejoin="round"
-                      class="lucide lucide-play">
-                      <path
-                        d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" />
-                    </svg>
-                  </span>
-                  Lire
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="table">
-            <table class="songs">
-              <thead>
-                <tr class="track-row">
-                  <th style="width:24px">#</th>
-                  <th style="width:auto">Titre</th>
-                  <th style="width:20%">Artiste</th>
-                  <th style="width:20%">Album</th>
-                  <th style="width:60px">Durée</th>
-                  <th style="width:32px"></th>
-                  <th style="width:32px">⋯</th>
-                </tr>
-              </thead>
-              <tbody id="artistTbody"></tbody>
-            </table>
-          </div>
-        </div>
-        <!-- FIN vue artiste -->
 
         <!-- Vue Musique -->
         <div id="viewSongs">
@@ -190,15 +130,13 @@
           <div id="songListMobile" class="list-mobile"></div>
           <table class="songs" id="songTable">
             <thead>
-              <tr class="track-row">
-                <th style="width:24px">#</th>
-                <th style="width:auto">Titre</th>
-                <th style="width:20%">Artiste</th>
-                <th style="width:20%">Album</th>
-                <th style="width:60px">Durée</th>
-                <th style="width:32px"></th>
-                <th style="width:32px">⋯</th>
-              </tr>
+              <tr><th>#</th><th>Titre</th><th>Artiste</th><th>Album</th><th>Durée</th><th><span><svg
+                      xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="1.5" stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-heart-icon lucide-heart"><path
+                        d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" /></svg></span></th><th>⋯</th></tr>
             </thead>
             <tbody id="songTbody"></tbody>
           </table>
@@ -221,32 +159,27 @@
               <div class="title" id="albumTitle">—</div>
               <div class="sub" id="albumSub">—</div>
               <div class="actions">
-                <button class="btn primary big" id="albumPlay">
-                  <span><svg xmlns="http://www.w3.org/2000/svg" width="14"
-                      height="14" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" stroke-width="1.5"
-                      stroke-linecap="round" stroke-linejoin="round"
-                      class="lucide lucide-play-icon lucide-play"><path
-                        d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" /></svg></span>
-                  Lire
-                </button>
+                <button class="btn primary big" id="albumPlay"><span><svg
+                      xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="1.5" stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-heart-icon lucide-heart"><path
+                        d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" /></svg></span>
+                  Lire</button>
+
               </div>
             </div>
           </div>
           <div class="table" style="margin-top:10px">
             <table class="songs">
-              <thead>
-                <tr class="track-row">
-                  <th style="width:24px">#</th>
-                  <th style="width:auto">Titre</th>
-                  <th style="width:20%">Artiste</th>
-                  <th style="width:20%">Album</th>
-                  <th style="width:60px">Durée</th>
-                  <th style="width:32px"></th>
-                  <th style="width:32px">⋯</th>
-                </tr>
-              </thead>
-
+              <thead><tr><th>#</th><th>Titre</th><th>Durée</th><th><span><svg
+                        xmlns="http://www.w3.org/2000/svg" width="14"
+                        height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-heart-icon lucide-heart"><path
+                          d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" /></svg></span></th><th>⋯</th></tr></thead>
               <tbody id="albumTbody"></tbody>
             </table>
           </div>
@@ -261,32 +194,27 @@
               <div class="title" id="playlistTitle">—</div>
               <div class="sub" id="playlistSub">—</div>
               <div class="actions">
-                <button class="btn primary big" id="playlistPlay">
-                  <span><svg xmlns="http://www.w3.org/2000/svg" width="14"
-                      height="14"
+                <button class="btn primary big" id="playlistPlay"><span><svg
+                      xmlns="http://www.w3.org/2000/svg" width="14" height="14"
                       viewBox="0 0 24 24" fill="none" stroke="currentColor"
                       stroke-width="1.5" stroke-linecap="round"
                       stroke-linejoin="round"
                       class="lucide lucide-play-icon lucide-play"><path
                         d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" /></svg></span>
-                  Lire
-                </button>
+                  Lire</button>
+
               </div>
             </div>
           </div>
           <div class="table" style="margin-top:10px">
             <table class="songs">
-              <thead>
-                <tr class="track-row">
-                  <th style="width:24px">#</th>
-                  <th style="width:auto">Titre</th>
-                  <th style="width:20%">Artiste</th>
-                  <th style="width:20%">Album</th>
-                  <th style="width:60px">Durée</th>
-                  <th style="width:32px"></th>
-                  <th style="width:32px">⋯</th>
-                </tr>
-              </thead>
+              <thead><tr><th>#</th><th>Titre</th><th>Artiste</th><th>Durée</th><th><span><svg
+                        xmlns="http://www.w3.org/2000/svg" width="14"
+                        height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-heart-icon lucide-heart"><path
+                          d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" /></svg></span></th><th>⋯</th></tr></thead>
               <tbody id="playlistTbody"></tbody>
             </table>
           </div>
@@ -353,24 +281,9 @@
                     d="m3 21 7-7" /><path
                     d="M9 21H3v-6" /></svg></span></button>
           </div>
-
-          <!-- NEW: nouvelle barre de progression (mini-player) -->
-          <div class="timeline">
-            <span id="cur">0:00</span>
-
-            <!-- composant progress (variant pill). ARIA pour accessibilité -->
-            <div class="progress" id="seekBar" data-variant="pill" role="slider"
-              aria-label="Position de lecture" aria-valuemin="0"
-              aria-valuemax="1000" aria-valuenow="0">
-              <div class="knob"></div>
-            </div>
-
-            <!-- ancien input, gardé caché le temps de migrer le JS -->
-            <input id="seek" type="range" min="0" max="1000" value="0"
-              class="range legacy-seek" />
-
-            <span id="dur">0:00</span>
-          </div>
+          <div class="timeline"><span id="cur">0:00</span><input id="seek"
+              type="range" min="0" max="1000" value="0" class="range" /><span
+              id="dur">0:00</span></div>
         </div>
         <div class="right">
           <button class="btn icon" id="btnLike" title="Favori"><span><svg
@@ -389,8 +302,8 @@
                   d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" /><path
                   d="M16 9a5 5 0 0 1 0 6" /><path
                   d="M19.364 18.364a9 9 0 0 0 0-12.728" /></svg></span><input
-              id="volume" type="range" min="0" max="1" step="0.01" value="1"
-              class="range vol" /></div>
+              id="volume" type="range" min="0"
+              max="1" step="0.01" value="1" class="range vol" /></div>
         </div>
       </footer>
     </div>
@@ -472,26 +385,10 @@
               id="npArtist" class="np-artist">—</div></div>
         </div>
         <div class="np-bottom" style="padding:0 14px 14px">
-
-          <!-- NEW: waveform/progress plein écran -->
-          <div class="timeline" style="margin:0 6px">
-            <span id="npCur">0:00</span>
-
-            <!-- ici wave par défaut -->
-            <div class="progress" id="npSeekBar" data-variant="wave"
-              role="slider"
-              aria-label="Position de lecture (plein écran)" aria-valuemin="0"
-              aria-valuemax="1000" aria-valuenow="0">
-              <div class="knob"></div>
-              <!-- les 40 barres seront générées par JS -->
-            </div>
-
-            <!-- ancien input caché (fallback) -->
-            <input id="npSeek" type="range" min="0" max="1000" value="0"
-              class="range legacy-seek" />
-            <span id="npDur">0:00</span>
-          </div>
-
+          <div class="timeline" style="margin:0 6px"><span
+              id="npCur">0:00</span><input id="npSeek" type="range" min="0"
+              max="1000" value="0" class="range" /><span
+              id="npDur">0:00</span></div>
           <div class="np-controls">
             <button class="btn icon" id="npShuffle"><span><svg
                   xmlns="http://www.w3.org/2000/svg" width="14" height="14"
