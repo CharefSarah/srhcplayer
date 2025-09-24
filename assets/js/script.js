@@ -1595,5 +1595,102 @@ $("#btnRepeat").onclick = () => {
     .querySelectorAll("#btnRepeat,#npRepeat")
     .forEach((b) => b?.classList.toggle("primary", on));
 };
+/* =========================
+   GESTURES (mobile)
+   ========================= */
+(function bindGestures() {
+  const zone = els.main;
+  if (!zone) return;
+  let sx = 0,
+    sy = 0,
+    t0 = 0;
+  zone.addEventListener(
+    "touchstart",
+    (e) => {
+      const t = e.touches?.[0];
+      if (!t) return;
+      sx = t.clientX;
+      sy = t.clientY;
+      t0 = Date.now();
+    },
+    { passive: true }
+  );
+  zone.addEventListener(
+    "touchend",
+    (e) => {
+      const t = e.changedTouches?.[0];
+      if (!t) return;
+      const dx = t.clientX - sx,
+        dy = t.clientY - sy,
+        dt = Date.now() - t0;
+      const ax = Math.abs(dx),
+        ay = Math.abs(dy);
+      if (dt < 800 && ax > 60 && ax > ay) {
+        if (dx < 0) next();
+        else prev();
+      } else if (dt < 800 && dy < -80 && ay > ax) {
+        els.nowDialog?.showModal?.();
+      }
+    },
+    { passive: true }
+  );
+})();
+
+/* =========================
+   SEARCH (global)
+   ========================= */
+els.search?.addEventListener("input", () => {
+  const q = els.search.value.trim().toLowerCase();
+  if (state.scope === "songs" || state.scope === "favorites") {
+    const base =
+      state.scope === "favorites"
+        ? state.songs.filter((s) => s.liked)
+        : state.songs;
+    const res = !q
+      ? base
+      : base.filter(
+          (t) =>
+            (t.title || "").toLowerCase().includes(q) ||
+            (t.artist || "").toLowerCase().includes(q) ||
+            (t.album || "").toLowerCase().includes(q)
+        );
+    showSongsView(res);
+    if (state.scope === "favorites") setScope("favorites");
+  } else if (state.scope === "album" && state.scopeMeta) {
+    const album = state.scopeMeta;
+    const full = state.albumsIndex.get(album.title)?.tracks || [];
+    const res = !q
+      ? full
+      : full.filter(
+          (t) =>
+            (t.title || "").toLowerCase().includes(q) ||
+            (t.artist || "").toLowerCase().includes(q)
+        );
+    showAlbumView(album, res);
+  } else if (state.scope === "artist" && state.scopeMeta) {
+    const artist = state.scopeMeta;
+    const full = state.artistsIndex.get(artist.name)?.tracks || [];
+    const res = !q
+      ? full
+      : full.filter(
+          (t) =>
+            (t.title || "").toLowerCase().includes(q) ||
+            (t.album || "").toLowerCase().includes(q)
+        );
+    showArtistView(artist, res);
+  } else if (state.scope === "playlist" && state.scopeMeta) {
+    const pl = state.scopeMeta;
+    const full = getPlaylistTracks(pl.id);
+    const res = !q
+      ? full
+      : full.filter(
+          (t) =>
+            (t.title || "").toLowerCase().includes(q) ||
+            (t.artist || "").toLowerCase().includes(q) ||
+            (t.album || "").toLowerCase().includes(q)
+        );
+    showPlaylistView(pl, res);
+  }
+});
 
 hydrateIcons(document);
