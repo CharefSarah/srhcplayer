@@ -1168,3 +1168,1078 @@ dialog .body {
   gap: 6px;
   min-width: 120px;
 }
+/* =========================================================
+   SRHC PLAYER — UI Theme (Clean + Responsive)
+   ========================================================= */
+
+/* ---------- Tokens ---------- */
+:root {
+  --bg: #0b0c10;
+  --panel: #111217;
+  --panel-2: #13151b;
+  --card: #0e1015;
+  --text: #eef2ff;
+  --muted: #9aa0ae;
+  --border: #232736;
+  --brand: #22c55e;
+  --brand-2: #86efac;
+  --accent-grad: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.25),
+    rgba(134, 239, 172, 0.18) 70%
+  );
+  --radius: 16px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+
+  /* progress */
+  --bar: #1a2131;
+}
+
+/* ---------- Base ---------- */
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell,
+    Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* =========================================================
+   Layout
+   ========================================================= */
+.app {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: 1fr auto;
+  min-height: 100dvh;
+}
+aside {
+  grid-row: 1 / span 1;
+  background: var(--panel);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-right: 1px solid var(--border);
+}
+main {
+  grid-row: 1 / span 1;
+  background: var(--panel-2);
+  padding: 16px 16px calc(124px + var(--safe-bottom));
+  overflow: auto;
+}
+
+/* =========================================================
+   Player (footer) — desktop baseline
+   ========================================================= */
+.player {
+  grid-column: 1/-1;
+  display: grid;
+  grid-template-columns: 300px 1fr 300px;
+  align-items: center;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  padding: 12px 20px;
+  gap: 18px;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+/* left */
+.now {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.now img {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #10131b;
+}
+.now .title {
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40vw;
+}
+.now .artist {
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+/* center */
+.center {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+.timeline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 600px;
+}
+.timeline span {
+  min-width: 38px;
+  text-align: center;
+  font-size: 0.85rem;
+}
+/* right */
+.right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.vol-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 140px;
+}
+
+/* =========================================================
+   Buttons / Inputs
+   ========================================================= */
+.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #0f1219;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+  transition: border-color 0.2s, background 0.2s, transform 0.1s;
+}
+.btn:hover {
+  border-color: #2d3346;
+  background: linear-gradient(180deg, #121622, #0d111a);
+}
+.btn.primary,
+.btn.icon.primary {
+  background: var(--brand);
+  color: #051b0f;
+  border-color: transparent;
+  font-weight: 700;
+}
+.btn.ghost {
+  background: transparent;
+}
+.btn.icon {
+  border-radius: 999px;
+  aspect-ratio: 1/1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn.icon.big {
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  background: #fff;
+  color: #111;
+}
+.btn.icon.big:hover {
+  transform: scale(1.02);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--brand-2);
+  outline-offset: 2px;
+  border-color: var(--brand-2);
+}
+
+.input {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: #0f1219;
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 8px;
+  outline: none;
+  width: 100%;
+}
+.label {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* =========================================================
+   Sidebar: brand / nav / covers / playlists
+   ========================================================= */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+.brand .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--brand);
+  box-shadow: 0 0 18px var(--brand);
+}
+.section-title {
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 8px 0;
+}
+.stack {
+  display: grid;
+  gap: 10px;
+}
+.nav {
+  display: grid;
+  gap: 8px;
+}
+
+/* small cover grid (albums + artistes) */
+.side-covers {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.cover-sm {
+  width: 62px;
+  height: 62px;
+  border-radius: 8px;
+  background: #0f1219;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+.cover-sm img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cover-sm:hover,
+.cover-sm:focus-visible {
+  transform: translateY(-1px);
+  border-color: #2c3346;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* playlists list */
+.playlist-item {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  transition: background 0.2s, border-color 0.2s, transform 0.1s;
+}
+.playlist-item:hover {
+  background: var(--accent-grad);
+}
+.pl-cover {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  background: #0f1219;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.pl-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pl-title {
+  font-weight: 700;
+}
+.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* =========================================================
+   Topbar
+   ========================================================= */
+.topbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.search {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0f1219;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 12px;
+}
+.search input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  outline: none;
+}
+.tag {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #0f2315;
+  color: #7df2ac;
+  border: 1px solid #113a23;
+}
+
+/* =========================================================
+   Cards (grid)
+   ========================================================= */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+.card {
+  background: #0f1219;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+.card:hover {
+  transform: translateY(-2px);
+  border-color: #2c3346;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.card .cv {
+  width: 100%;
+  aspect-ratio: 1/1;
+  border-radius: 8px;
+  background: #10131b;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+.card .ttl {
+  font-weight: 800;
+}
+.card .sub {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* =========================================================
+   Tables (unifiées)
+   Colonnes: # | Titre | Artiste | Album | Durée | ❤ | ⋯
+   ========================================================= */
+.songs {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+.songs thead th {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+.songs tbody tr {
+  background: #0f1219;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: transform 0.12s, border-color 0.12s;
+}
+.songs tbody tr:hover {
+  border-color: #2c3346;
+  transform: translateY(-1px);
+}
+.songs tbody tr > td:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+.songs tbody tr > td:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+.songs td {
+  padding: 12px 10px;
+  vertical-align: middle;
+}
+
+/* cellule Titre (cover + labels) */
+.song {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #0f1219;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.songs .btn.icon {
+  background: transparent;
+}
+.songs .btn.icon:hover {
+  background: #0e131e;
+}
+
+/* responsive colonnes — commun à toutes les tables .songs */
+@media (max-width: 900px) {
+  .songs thead tr th:nth-child(4),
+  .songs tbody tr td:nth-child(4) {
+    display: none;
+  } /* Album */
+}
+@media (max-width: 640px) {
+  .songs thead tr th:nth-child(3),
+  .songs tbody tr td:nth-child(3), /* Artiste */
+  .songs thead tr th:nth-child(7),
+  .songs tbody tr td:nth-child(7) {
+    display: none;
+  } /* ⋯ */
+}
+
+/* =========================================================
+   “Toutes les chansons” header + liste mobile
+   ========================================================= */
+.songsHeader {
+  display: none;
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 16px;
+  margin-bottom: 10px;
+  background: var(--accent-grad);
+}
+.songsHeader .title {
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+.songsHeader .subtitle {
+  color: var(--muted);
+  margin-top: 4px;
+}
+.floatPlay {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--brand);
+  color: #051b0f;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.list-mobile {
+  display: none;
+}
+.list-mobile .item {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #0f1219;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.list-mobile .cover {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0e0e14;
+  border: 1px solid var(--border);
+}
+.list-mobile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.list-mobile .t {
+  font-weight: 800;
+}
+.list-mobile .a {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.list-mobile .actions {
+  display: flex;
+  gap: 6px;
+}
+.kebab {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  display: grid;
+  place-items: center;
+}
+
+/* =========================================================
+   Heroes (Album / Playlist / Artiste)
+   ========================================================= */
+#albumView .hero,
+#playlistView .hero,
+#artistView .hero {
+  border-radius: 8px;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 16px;
+  align-items: center;
+  background: var(--accent-grad);
+}
+#albumView .hero .cover,
+#playlistView .hero .cover,
+#artistView .hero .cover {
+  width: 180px;
+  height: 180px;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: var(--shadow);
+  background: #0e0e14;
+  border: 1px solid var(--border);
+}
+#albumView .hero .meta,
+#playlistView .hero .meta,
+#artistView .hero .meta {
+  display: grid;
+  gap: 6px;
+}
+#albumView .title,
+#playlistView .title,
+#artistView .title {
+  font-size: 2rem;
+  font-weight: 900;
+}
+#albumView .sub,
+#playlistView .sub,
+#artistView .sub {
+  color: var(--muted);
+}
+#albumView .actions,
+#playlistView .actions,
+#artistView .actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 6px;
+}
+#albumView .actions .big,
+#playlistView .actions .big,
+#artistView .actions .big {
+  font-size: 1rem;
+  padding: 12px 16px;
+  border-radius: 999px;
+}
+#albumView .table,
+#playlistView .table,
+#artistView .table {
+  margin-top: 14px;
+}
+
+/* =========================================================
+   Range (volume fallback)
+   ========================================================= */
+.range {
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bar);
+  outline: none;
+  position: relative;
+}
+.range::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--brand) 0 var(--_val, 0%),
+    var(--bar) var(--_val, 0%) 100%
+  );
+}
+.range::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bar);
+}
+.range::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--brand);
+  margin-top: -6px;
+  box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.12);
+}
+.range:active::-webkit-slider-thumb {
+  transform: scale(1.03);
+}
+.vol {
+  max-width: 180px;
+}
+
+/* =========================================================
+   Dialogs
+   ========================================================= */
+dialog {
+  border: 1px solid var(--border);
+  background: #0f1219 !important;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0;
+  max-width: 560px;
+  width: calc(100% - 24px);
+  box-shadow: var(--shadow);
+}
+dialog header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+dialog .body {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+.row2 {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.cover-preview {
+  width: 110px;
+  height: 110px;
+  border-radius: 8px;
+  background: #0e0e14;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.cover-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* =========================================================
+   Full-screen player (nowDialog) + gradient + waveform
+   ========================================================= */
+#nowDialog {
+  max-width: none;
+  width: 100%;
+  height: 100dvh;
+  border-radius: 0;
+  background: var(--panel-2);
+  position: relative;
+  overflow: hidden;
+}
+.np-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+  padding: 20px;
+  gap: 20px;
+  text-align: center;
+  position: relative;
+}
+.np-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 2;
+}
+.np-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(34, 197, 94, 0.35),
+    transparent 60%
+  );
+  z-index: 1;
+}
+.np-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  z-index: 2;
+}
+.np-cover {
+  width: min(70vw, 320px);
+  aspect-ratio: 1/1;
+  border-radius: 24px;
+  object-fit: cover;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+.np-meta {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+.np-title {
+  font-weight: 900;
+  font-size: 1.6rem;
+}
+.np-artist {
+  font-size: 1rem;
+  color: var(--muted);
+}
+.np-bottom {
+  display: grid;
+  gap: 20px;
+  padding-bottom: calc(10px + var(--safe-bottom));
+  z-index: 2;
+}
+.np-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+}
+.np-controls .big {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+}
+.np-timeline {
+  padding: 0 16px;
+}
+
+/* Progress (pill & wave) */
+.progress {
+  --h: 10px;
+  --fg: var(--brand);
+  position: relative;
+  width: 100%;
+  height: var(--h);
+  border-radius: 999px;
+  background: var(--bar);
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+.progress::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--fg) 0 var(--_val, 0%),
+    var(--bar) var(--_val, 0%) 100%
+  );
+  transition: background 0.06s linear;
+}
+.progress .knob {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--fg);
+  transform: translate(var(--_x, 0px), -50%);
+  box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.12);
+  transition: transform 0.06s linear;
+  pointer-events: none;
+}
+.progress[data-variant="pill"] {
+  --h: 8px;
+}
+.progress[data-variant="pill"] .knob {
+  width: 16px;
+  height: 16px;
+  border-width: 3px;
+}
+.progress[data-variant="wave"] {
+  --h: 72px;
+  background: transparent;
+  border-radius: 0;
+  height: var(--h);
+}
+.progress[data-variant="wave"]::before {
+  display: none;
+}
+.progress[data-variant="wave"] .knob {
+  display: none;
+}
+.progress[data-variant="wave"] .bars {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--n, 40), 1fr);
+  align-items: end;
+  gap: 6px;
+  padding: 6px 8px;
+}
+.progress[data-variant="wave"] .bar {
+  height: 24px;
+  border-radius: 3px;
+  background: #2a2f3f;
+  transition: height 0.12s ease, background 0.1s linear;
+}
+.progress[data-variant="wave"] .bar.played {
+  background: var(--brand);
+}
+.progress[aria-grabbed="true"] {
+  filter: saturate(1.1);
+}
+
+/* Icons util */
+.i svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+
+/* ---------- Large tablet (≤1200px) ---------- */
+@media (max-width: 1200px) {
+  .player {
+    grid-template-columns: 240px 1fr 240px;
+  }
+  .now img {
+    width: 50px;
+    height: 50px;
+  }
+  .timeline {
+    max-width: 520px;
+  }
+  .vol {
+    max-width: 160px;
+  }
+}
+
+/* ---------- Tablet (≤900px) ---------- */
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+  aside {
+    display: none;
+  }
+
+  /* Drawer mask */
+  .drawer-mask {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.16s ease, background 0.16s ease;
+    z-index: 40;
+  }
+  .drawer-mask.show {
+    opacity: 1;
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.35);
+  }
+  body.aside-open aside#sidebar {
+    display: block;
+  }
+  aside#sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(86vw, 320px);
+    max-width: 92vw;
+    transform: translateX(-101%);
+    transition: transform 0.16s ease;
+    z-index: 50;
+    box-shadow: 6px 0 24px rgba(0, 0, 0, 0.45);
+  }
+  body.aside-open aside#sidebar {
+    transform: translateX(0);
+  }
+
+  /* Footer compaction */
+  .player {
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    padding: 12px 14px calc(12px + var(--safe-bottom));
+  }
+  .now {
+    grid-column: 1/2;
+    grid-row: 1/2;
+  }
+  .center {
+    grid-column: 2/3;
+    grid-row: 1/2;
+  }
+  .timeline {
+    grid-column: 1/-1;
+    grid-row: 2/3;
+    margin-top: 2px;
+    max-width: none;
+  }
+  .right {
+    display: none;
+  } /* cache like/volume/expand sur tablette */
+  .now img {
+    width: 48px;
+    height: 48px;
+  }
+
+  /* Vues chansons */
+  #viewSongs .songsHeader {
+    display: block;
+  }
+  #viewSongs table {
+    display: none;
+  }
+  #viewSongs .list-mobile {
+    display: block;
+  }
+}
+
+/* ---------- Mobile (≤640px) ---------- */
+@media (max-width: 640px) {
+  /* tables: colonnes masquées déjà gérées plus haut */
+  .np-title {
+    font-size: 1.35rem;
+  }
+  .np-controls .big {
+    width: 66px;
+    height: 66px;
+  }
+  .progress[data-variant="wave"] {
+    --h: 60px;
+  }
+  .progress[data-variant="wave"] .bars {
+    gap: 4px;
+  }
+  /* footer : ne laisser que Play + Next + Prev */
+  #btnShuffle,
+  #btnRepeat {
+    display: none;
+  }
+}
+
+/* ---------- Small mobile (≤480px) ---------- */
+@media (max-width: 480px) {
+  .player {
+    gap: 12px;
+  }
+  .now img {
+    width: 44px;
+    height: 44px;
+  }
+  .controls {
+    gap: 10px;
+  }
+  .timeline span {
+    min-width: 34px;
+  }
+  .np-cover {
+    width: min(82vw, 340px);
+  }
+  .np-controls .big {
+    width: 60px;
+    height: 60px;
+  }
+  .progress[data-variant="wave"] {
+    --h: 52px;
+  }
+}
+/* ---------- Tablet (≤900px) : garder Expand visible ---------- */
+@media (max-width: 900px) {
+  /* ... (tes règles déjà présentes) ... */
+
+  /* On ne cache plus tout .right, on garde seulement Expand */
+  .right {
+    display: flex; /* au lieu de display:none */
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    grid-column: 3/4; /* colonne droite de la grille mobile */
+    grid-row: 1/2;
+  }
+  /* On masque like + volume seulement */
+  .right #btnLike,
+  .right .vol-wrap {
+    display: none !important;
+  }
+
+  /* Un peu plus “touch friendly” pour le bouton expand */
+  #btnExpand {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+  }
+
+  /* Si l’espace est vraiment serré, on autorise le wrap */
+  .player {
+    grid-template-columns: auto 1fr auto;
+  }
+}
