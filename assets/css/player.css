@@ -1,0 +1,480 @@
+/* =========================================================
+   SRHC PLAYER — UI Theme
+   Propre & harmonisé (thead/tbody identiques partout)
+   ========================================================= */
+
+:root {
+  --bg: #0b0c10;
+  --panel: #111217;
+  --panel-2: #13151b;
+  --card: #0e1015;
+  --text: #eef2ff;
+  --muted: #9aa0ae;
+  --border: #232736;
+  --brand: #229ac5;
+  --brand-2: #86daef;
+  --accent-grad: linear-gradient(
+    135deg,
+    rgba(34, 126, 197, 0.25),
+    rgba(134, 192, 239, 0.18) 70%
+  );
+  --radius: 16px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+  width: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell,
+    Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* =========================================================
+   Layout
+   ========================================================= */
+
+.app {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: 1fr auto;
+  min-height: 100dvh;
+  width: 100%;
+}
+
+aside {
+  grid-row: 1 / span 1;
+  background: var(--panel);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-right: 1px solid var(--border);
+}
+main {
+  grid-row: 1 / span 1;
+  background: var(--panel-2);
+  padding: 16px 16px calc(124px + var(--safe-bottom));
+  overflow: auto;
+}
+
+/* =========================================================
+   Player footer
+   ========================================================= */
+
+.player {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px 16px;
+}
+
+/* gauche */
+.now {
+  display: flex;
+  align-items: center;
+  width: 25%;
+  height: 100%;
+  gap: 12px;
+}
+.now img {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.now .title {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+.now .artist {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* centre */
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 50%;
+}
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+.timeline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 500px;
+}
+.timeline span {
+  font-size: 0.85rem;
+  min-width: 38px;
+  text-align: center;
+}
+
+/* droite */
+.right {
+  width: 25%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 12px;
+}
+
+/* =========================================================
+   Buttons / Inputs / Progress component (pill/wave)
+   ========================================================= */
+
+.progress {
+  --h: 10px;
+  --bar: #1a2131;
+  --fg: var(--brand);
+  position: relative;
+  width: 100%;
+  height: var(--h);
+  border-radius: 999px;
+  background: var(--bar);
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+.progress::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--fg) 0 var(--_val, 0%),
+    var(--bar) var(--_val, 0%) 100%
+  );
+  transition: background 0.06s linear;
+}
+
+/* variant: pill (footer) */
+.progress[data-variant="pill"] {
+  --h: 8px;
+}
+.progress[data-variant="pill"] .knob {
+  width: 16px;
+  height: 16px;
+  border-width: 3px;
+}
+
+/* variant: wave (full screen) */
+.progress[data-variant="wave"] {
+  --h: 72px;
+  background: transparent;
+  border-radius: 0;
+  height: var(--h);
+}
+.progress[data-variant="wave"]::before {
+  display: none;
+} /* on n'utilise pas le fill de base */
+.progress[data-variant="wave"] .knob {
+  display: none;
+} /* pas de knob sur l'onde */
+.progress[data-variant="wave"] .bars {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--n, 40), 1fr);
+  align-items: end;
+  gap: 6px;
+  padding: 6px 8px;
+}
+.progress[data-variant="wave"] .bar {
+  height: 24px;
+  border-radius: 3px;
+  background: #2a2f3f;
+  transition: height 0.12s ease, background 0.1s linear;
+}
+.progress[data-variant="wave"] .bar.played {
+  background: var(--brand);
+}
+@media (max-width: 520px) {
+  .progress[data-variant="wave"] {
+    --h: 56px;
+  }
+  .progress[data-variant="wave"] .bars {
+    gap: 4px;
+  }
+}
+
+/* état drag */
+.progress[aria-grabbed="true"] {
+  filter: saturate(1.1);
+}
+/* Big play contrast */
+.btn.icon.big {
+  background: #fff;
+  color: #111;
+}
+.btn.icon.big:hover {
+  transform: scale(1.02);
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #0f1219;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+  transition: border-color 0.2s, background 0.2s, transform 0.1s;
+}
+.btn:hover {
+  border-color: #2d3346;
+  background: linear-gradient(180deg, #121b22, #0d111a);
+}
+.btn.primary {
+  background: var(--brand);
+  border-color: transparent;
+  color: #051b0f;
+  font-weight: 700;
+}
+.btn.ghost {
+  background: transparent;
+}
+.btn.icon {
+  border-radius: 999px;
+  aspect-ratio: 1/1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn.icon.big {
+  width: 56px;
+  height: 56px;
+  padding: 0;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--brand-2);
+  outline-offset: 2px;
+  border-color: var(--brand-2);
+}
+
+.input {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: #0f1219;
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 8px;
+  outline: none;
+  width: 100%;
+}
+.label {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* =========================================================
+   Brand / Sidebar
+   ========================================================= */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+.brand .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--brand);
+  box-shadow: 0 0 18px var(--brand);
+}
+.section-title {
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 8px 0;
+}
+.stack {
+  display: grid;
+  gap: 10px;
+}
+.nav {
+  display: grid;
+  gap: 8px;
+}
+
+/* Sidebar previews (Albums + Artistes identiques) */
+.side-covers {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.cover-sm {
+  width: 62px;
+  height: 62px;
+  border-radius: 8px;
+  background: #0f1219;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+.cover-sm img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cover-sm:hover,
+.cover-sm:focus-visible {
+  transform: translateY(-1px);
+  border-color: #2c3346;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* Playlists list (aside) */
+.playlist-item {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  transition: background 0.2s, border-color 0.2s, transform 0.1s;
+}
+.playlist-item:hover {
+  background: var(--accent-grad);
+}
+.pl-cover {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  background: #0f1219;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.pl-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pl-title {
+  font-weight: 700;
+}
+.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* =========================================================
+   Topbar / Search / Tag
+   ========================================================= */
+
+.topbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.search {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0f1219;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 12px;
+}
+.search input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  outline: none;
+}
+.tag {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #0f1723;
+  color: #7dc9f2;
+  border: 1px solid #112e3a;
+}
+
+/* =========================================================
+   Cards / Grid (Albums / Playlists / Artistes)
+   ========================================================= */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+.card {
+  background: #0f1219;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+.card:hover {
+  transform: translateY(-2px);
+  border-color: #2c3346;
+}
+.card .cv {
+  width: 100%;
+  aspect-ratio: 1/1;
+  border-radius: 8px;
+  background: #10131b;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+.card .ttl {
+  font-weight: 800;
+}
+.card .sub {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
