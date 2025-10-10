@@ -2243,3 +2243,99 @@ dialog .body {
     grid-template-columns: auto 1fr auto;
   }
 }
+/* --- commun --- */
+.timeline {
+  overflow: visible;
+}
+
+.progress[data-variant="wave"] {
+  position: relative;
+  overflow: visible; /* ne coupe pas la wave/knob */
+}
+
+/* mobile par défaut (comme tu aimes) */
+.progress[data-variant="wave"] {
+  height: 56px;
+}
+.progress[data-variant="wave"] .bars {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--n, 40), 1fr);
+  align-items: end;
+  gap: 3px;
+  pointer-events: none;
+}
+.progress[data-variant="wave"] .bar {
+  width: 2px;
+  background: currentColor;
+  opacity: 0.45;
+  border-radius: 1px;
+}
+.progress[data-variant="wave"] .bar.played {
+  opacity: 1;
+}
+
+/* --- DESKTOP --- */
+@media (min-width: 1024px) {
+  /* resserre la zone, centre-la, et donne un fond "pill" */
+  .timeline {
+    max-width: 760px;
+    margin-inline: auto;
+    padding: 10px 12px; /* un peu d’air */
+  }
+  .progress[data-variant="wave"] {
+    height: 48px; /* un poil plus bas en desktop */
+    background: var(--panel-1, #14161b); /* ou une couleur de ton thème */
+    border: 1px solid var(--border, #2a2e36);
+    border-radius: 999px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .progress[data-variant="wave"] .bars {
+    gap: 2px;
+  }
+  .progress[data-variant="wave"] .bar {
+    width: 2px;
+    opacity: 0.35;
+  }
+  .progress[data-variant="wave"] .bar.played {
+    opacity: 0.95;
+  }
+
+  /* léger fondu sur les bords pour éviter le "mur" de barres */
+  .progress[data-variant="wave"] .bars::before,
+  .progress[data-variant="wave"] .bars::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 24px;
+    pointer-events: none;
+  }
+  .progress[data-variant="wave"] .bars::before {
+    left: 0;
+    background: linear-gradient(
+      90deg,
+      var(--panel-1, #14161b) 0%,
+      transparent 100%
+    );
+    border-top-left-radius: 999px;
+    border-bottom-left-radius: 999px;
+  }
+  .progress[data-variant="wave"] .bars::after {
+    right: 0;
+    background: linear-gradient(
+      -90deg,
+      var(--panel-1, #14161b) 0%,
+      transparent 100%
+    );
+    border-top-right-radius: 999px;
+    border-bottom-right-radius: 999px;
+  }
+
+  /* knob si tu l’utilises : bien centré et pas coupé */
+  .progress[data-variant="wave"] .knob {
+    position: absolute;
+    bottom: -6px; /* ajuste si besoin */
+  }
+}

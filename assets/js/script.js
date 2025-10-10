@@ -325,7 +325,16 @@ function bindUI() {
   $("#btnAlbums") && ($("#btnAlbums").onclick = showAlbums);
   $("#btnPlaylists") && ($("#btnPlaylists").onclick = showPlaylists);
   $("#btnArtists") && ($("#btnArtists").onclick = showArtists);
+  const newPlBtn = document.getElementById("btnNewPlaylist");
+  if (newPlBtn) newPlBtn.onclick = openNewPlaylistDialog;
   initProgressUI();
+
+  $("#bulkSelectAll") && ($("#bulkSelectAll").onclick = selectAllVisible);
+  $("#bulkDelete") && ($("#bulkDelete").onclick = deleteSelectedSongs);
+  $("#bulkCancel") && ($("#bulkCancel").onclick = () => enterSelectMode(false));
+  // new:
+  $("#bulkAddToPlaylists") &&
+    ($("#bulkAddToPlaylists").onclick = addSelectedToPlaylists);
 
   // Song dialog widgets
   $("#btnAddSong") && ($("#btnAddSong").onclick = () => songDialog.showModal());
@@ -334,6 +343,8 @@ function bindUI() {
     if (f) $("#songCoverPreview").src = await readAsDataURL(f);
   });
   $("#saveSong")?.addEventListener("click", saveSongFromForm);
+  $("#btnEnterSelect") &&
+    ($("#btnEnterSelect").onclick = () => enterSelectMode(true));
 
   // Player controls
   $("#volume") &&
@@ -789,7 +800,7 @@ async function renderSongs() {
   applySongsHeaderTheme();
 
   // Desktop table
-  setStdThead($("#songThead"));
+  setStdThead($("#songsThead"));
   const tbody = $("#songTbody");
   if (tbody) {
     tbody.innerHTML = "";
@@ -1435,10 +1446,6 @@ async function toggleLikeCurrent() {
 /* ========================================================================
    PLAYLISTS — ASIDE LIST + CRUD + ADD
    ======================================================================== */
-
-/* ========================================================================
-   PLAYLISTS — ASIDE LIST + CRUD + ADD
-   ======================================================================== */
 async function renderPlaylists() {
   const wrap = $("#playlists");
   if (!wrap) return;
@@ -1550,46 +1557,96 @@ async function deletePlaylist(id) {
   renderPlaylists();
   if (state.scope.type === "playlistGrid") renderPlaylistsGrid();
 }
-async function openAddToPlaylistDialog(songId) {
+async function openAddToPlaylistDialog(songIds) {
   const body = $("#plAddBody");
   if (!body) return;
-  body.innerHTML = "";
-  const pls = await DB.all("playlists");
-  if (!pls.length) {
+
+  const idsToUpdate = Array.isArray(songIds) ? songIds : [songIds];
+  body.innerHTML = `
+    <div style="display:grid;gap:10px;max-height:50vh;overflow:auto">
+      <div class="muted" style="margin-bottom:4px">Playlists</div>
+      <div id="plAddList" style="display:grid;gap:10px"></div>
+    </div>
+  `;
+
+  const listEl = body.querySelector("#plAddList");
+  const playlists = await DB.all("playlists");
+  if (!playlists.length) {
     if (confirm("Aucune playlist. En créer une ?")) openNewPlaylistDialog();
     return;
   }
-  pls.forEach((pl) => {
+
+  // on pré-coche si AU MOINS un des morceaux est déjà dans la playlist
+  const initialChecked = new Map(); // plId -> boolean
+  playlists.forEach((pl) => {
+    const hasAny = (pl.ids || []).some((sid) => idsToUpdate.includes(sid));
+    initialChecked.set(pl.id, hasAny);
+
     const line = document.createElement("label");
     line.style.display = "flex";
     line.style.alignItems = "center";
     line.style.gap = "10px";
-    line.innerHTML = `<input type="radio" name="plAdd" value="${pl.id}" />
-    <div class="pl-cover" style="width:40px;height:40px">
-      ${pl.image ? `<img src="${pl.image}">` : "🎧"}
-    </div>
-    <div>${pl.name}</div>`;
-    body.appendChild(line);
+    line.innerHTML = `
+      <input type="checkbox" name="plAdd" value="${pl.id}" ${
+      hasAny ? "checked" : ""
+    }/>
+      <div class="pl-cover" style="width:40px;height:40px">
+        ${pl.image ? `<img src="${pl.image}" alt="">` : "🎧"}
+      </div>
+      <div style="min-width:0">
+        <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${
+          pl.name
+        }</div>
+        <div class="muted" style="font-size:.85rem">${
+          pl.ids?.length || 0
+        } titre(s)</div>
+      </div>
+    `;
+    listEl.appendChild(line);
   });
+
   plAddDialog.showModal();
+
   $("#plAddConfirm") &&
     ($("#plAddConfirm").onclick = async () => {
-      const chosen = body.querySelector('input[name="plAdd"]:checked');
-      if (!chosen) {
-        alert("Choisis une playlist.");
-        return;
+      const checkedNow = new Set(
+        [...body.querySelectorAll('input[name="plAdd"]:checked')].map(
+          (x) => x.value
+        )
+      );
+
+      // pour chaque playlist, on applique le diff
+      for (const pl of playlists) {
+        const wasChecked = initialChecked.get(pl.id);
+        const isChecked = checkedNow.has(pl.id);
+        pl.ids = pl.ids || [];
+
+        if (isChecked && !wasChecked) {
+          // AJOUTER les morceaux sélectionnés manquants
+          for (const sid of idsToUpdate) {
+            if (!pl.ids.includes(sid)) pl.ids.push(sid);
+          }
+          await DB.put("playlists", pl);
+        } else if (!isChecked && wasChecked) {
+          // RETIRER les morceaux sélectionnés
+          const toRemove = new Set(idsToUpdate);
+          const before = pl.ids.length;
+          pl.ids = pl.ids.filter((sid) => !toRemove.has(sid));
+          if (pl.ids.length !== before) await DB.put("playlists", pl);
+        }
+        // si wasChecked === isChecked → aucun changement à appliquer
       }
-      const pl = await DB.get("playlists", chosen.value);
-      pl.ids = pl.ids || [];
-      if (!pl.ids.includes(songId)) pl.ids.push(songId);
-      await DB.put("playlists", pl);
+
       plAddDialog.close();
       renderPlaylists();
-      if (
-        state.scope.type === "playlistDetail" &&
-        state.currentPlaylistId === pl.id
-      )
-        renderPlaylistDetail(pl.id);
+
+      // rafraîchir la vue si on est déjà sur une playlist concernée
+      if (state.scope.type === "playlistDetail") {
+        const affected = playlists.some(
+          (p) => p.id === state.currentPlaylistId
+        );
+        if (affected) renderPlaylistDetail(state.currentPlaylistId);
+      }
     });
 }
 
@@ -1646,6 +1703,16 @@ async function deleteSelectedSongs() {
   postImport();
   alert("Suppression effectuée.");
 }
+
+async function addSelectedToPlaylists() {
+  if (!state.selection.size) {
+    alert("Sélection vide.");
+    return;
+  }
+  // ouvrir la même modale avec un tableau d'IDs
+  openAddToPlaylistDialog([...state.selection]);
+}
+
 function updateBulkBar() {
   const bar = $("#bulkBar");
   if (!bar) return;
@@ -2353,6 +2420,14 @@ function syncProgressFromAudio() {
     const el = document.getElementById(id);
     if (el) updateProgressVisual(el, p);
   });
+}
+$("#bulkCancel") && ($("#bulkCancel").onclick = () => enterSelectMode(false));
+
+function updateBulkBar() {
+  const bar = $("#bulkBar");
+  if (!bar) return;
+  bar.hidden = !state.selectMode;
+  $("#bulkCount") && ($("#bulkCount").textContent = state.selection.size);
 }
 
 hydrateIcons(document);
